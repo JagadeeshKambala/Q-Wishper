@@ -44,7 +44,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   useEffect(() => onAuthStateChanged(auth, (u) => setUid(u?.uid || "")), []);
 
-  // Load chat metadata (seed + members) and derive key + peer username
+  // Load chat metadata and derive session key (BB84 with a seed-only fallback)
   useEffect(() => {
     (async () => {
       const cdoc = await getDoc(doc(db, "chats", chatId));
@@ -66,13 +66,23 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         setPeerName(uname);
       }
 
-      // Derive session key
-      const bb = await simulateBB84(s, 2048);
-      setQber(bb.qber);
-      const sifted = base64ToBytes(bb.base64_key);
-      const salt = base64ToBytes(s);
-      const k = await hkdfKey(sifted, salt);
-      setDerived(k);
+      // --- Robust session key derivation ---
+      // Preferred: simulateBB84 (may call your API)
+      // Fallback: derive directly from the shared seed (works on Netlify if BB84 fails due to CORS/env)
+      try {
+        const bb = await simulateBB84(s, 2048);
+        setQber(bb.qber);
+        const sifted = base64ToBytes(bb.base64_key);
+        const salt = base64ToBytes(s);
+        const k = await hkdfKey(sifted, salt);
+        setDerived(k);
+      } catch (err) {
+        console.warn("simulateBB84 failed; using seed-only fallback", err);
+        const seedBytes = base64ToBytes(s);
+        const k = await hkdfKey(seedBytes, seedBytes);
+        setQber(null);
+        setDerived(k);
+      }
     })();
   }, [chatId, uid]);
 
@@ -87,7 +97,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
     );
   }, [chatId]);
 
-  // Auto scroll
+  // Auto scroll on new messages
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [msgs.length]);
@@ -104,48 +114,40 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         createdAt: serverTimestamp(),
       });
       setText("");
-      // reset textarea height after send
-      if (taRef.current) {
-        taRef.current.style.height = "40px";
-      }
+      if (taRef.current) taRef.current.style.height = "40px";
     } finally {
       setBusy(false);
     }
   };
 
-  // Auto-grow the textarea for multi-line, capped for mobile comfort
+  // Auto-grow the textarea for multi-line (with a cap for mobile)
   const autoGrow = () => {
     const el = taRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const max = 140; // px cap to avoid covering too much screen
+    const max = 140; // px cap
     el.style.height = Math.min(el.scrollHeight, max) + "px";
   };
 
   return (
     <div
       className="min-h-[100dvh] flex flex-col bg-neutral-50"
-      style={{
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {/* Header (sticky) */}
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-white shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
-        {/* Accent bar */}
         <div className="h-0.5 w-full bg-gradient-to-r from-[rgb(10,132,255)] via-[rgba(10,132,255,0.35)] to-transparent" />
         <div className="px-3 sm:px-5">
           <div className="flex items-center gap-2 py-2.5 sm:py-3">
-            {/* Back on mobile */}
             {onBack && (
               <button
                 onClick={onBack}
-                className="md:hidden inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:shadow-sm active:scale-[.99] transition"
+                className="md:hidden inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium hover:shadow-sm active:scale-[.99] transition"
               >
-                ←
+                ← Back
               </button>
             )}
 
-            {/* Avatar + Title */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-[rgb(120,190,255)] to-[rgb(10,132,255)] text-white grid place-items-center text-xs sm:text-sm font-semibold shadow-sm"
@@ -169,7 +171,6 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
               </div>
             </div>
 
-            {/* Seed snippet on wide screens */}
             <div className="ml-auto hidden sm:block text-[11px] text-neutral-400">
               seed {seedB64 ? seedB64.slice(0, 10) + "…" : "—"}
             </div>
@@ -177,7 +178,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         </div>
       </div>
 
-      {/* Messages (extra bottom padding so sticky composer doesn’t overlap) */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2 sm:pt-4 pb-28 sm:pb-32">
         <div className="mx-auto w-full max-w-3xl space-y-1.5 sm:space-y-2.5">
           {msgs.map((m) => (
@@ -193,7 +194,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         </div>
       </div>
 
-      {/* Composer (sticky, with safe area) */}
+      {/* Composer */}
       <div
         className="sticky bottom-0 z-10 border-t border-neutral-200 bg-white px-2 sm:px-4"
         style={{
@@ -268,14 +269,14 @@ function MessageBubble({
   useEffect(() => {
     (async () => {
       if (!keyObj) {
-        setPt("…");
+        setPt("…"); // loading placeholder until key is derived
         return;
       }
       try {
         const plain = await aesGcmDecrypt(keyObj, msg.iv_b64, msg.ct_b64);
         setPt(plain);
       } catch {
-        setPt("[decrypt error]");
+        setPt("[decrypt error]"); // shows only if keys truly mismatch
       }
     })();
   }, [keyObj, msg.iv_b64, msg.ct_b64]);
@@ -289,7 +290,7 @@ function MessageBubble({
         ].join(" ")}
       >
         {pt}
-        {/* Tiny tail */}
+        {/* Tiny tail for iMessage look */}
         <span
           className={[
             "absolute bottom-0 translate-y-[55%] w-3 h-3 rotate-45",
