@@ -18,7 +18,9 @@ export default function Login() {
   const [err, setErr] = useState<string>("");
 
   useEffect(() => {
+    // Surface redirect errors (Safari/blocked popup fallback)
     getRedirectResult(auth).catch((e: any) => setErr(normalizeAuthError(e)));
+    // Reflect auth state
     return onAuthStateChanged(auth, (u: any) => setLoggedIn(!!u));
   }, []);
 
@@ -40,7 +42,9 @@ export default function Login() {
         } catch (e2: any) {
           setErr(normalizeAuthError(e2));
         }
-      } else setErr(normalizeAuthError(e));
+      } else {
+        setErr(normalizeAuthError(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -71,26 +75,29 @@ export default function Login() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-auto bg-neutral-50 text-neutral-900 dark:bg-black dark:text-neutral-100">
+    <div className="fixed inset-0 overflow-auto bg-neutral-50 text-neutral-900">
+      {/* Subtle top accent (ties in with the app’s cool palette) */}
+      <div className="h-0.5 w-full bg-gradient-to-r from-[rgb(10,132,255)] via-[rgba(10,132,255,0.35)] to-transparent" />
+
       <div className="min-h-dvh w-screen grid md:grid-cols-2">
-        {/* Left panel */}
-        <section className="hidden md:flex flex-col justify-center px-12 lg:px-20 bg-gradient-to-b from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-black">
+        {/* Left panel (copy/brand) */}
+        <section className="hidden md:flex flex-col justify-center px-12 lg:px-20 bg-gradient-to-b from-neutral-100 to-neutral-50">
           <h1 className="text-5xl font-semibold tracking-tight leading-tight">
             Sign in.
             <br />
             Simple. Private. Secure.
           </h1>
-          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-md">
+          <p className="mt-6 text-lg text-neutral-600 max-w-md">
             Access your messages across devices with a privacy-first experience.
           </p>
         </section>
 
-        {/* Right panel (auth) */}
+        {/* Right panel (auth form) */}
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md">
-            <div className="rounded-3xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl shadow-sm p-8">
+            <div className="rounded-3xl border border-neutral-200 bg-white/80 backdrop-blur-xl shadow-sm p-8">
               <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
-              <p className="mt-1.5 text-sm text-neutral-600 dark:text-neutral-400">
+              <p className="mt-1.5 text-sm text-neutral-600">
                 Use your Google account or email.
               </p>
 
@@ -98,16 +105,16 @@ export default function Login() {
                 type="button"
                 onClick={signInGoogle}
                 disabled={busy}
-                className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white dark:bg-neutral-900 px-4 py-3 text-sm font-medium hover:shadow-sm active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 dark:focus:ring-white/20"
+                className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium hover:shadow-sm active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
               >
                 <GoogleMark />
                 {busy ? "Working…" : "Continue with Google"}
               </button>
 
               <div className="my-6 flex items-center gap-3 text-xs text-neutral-500">
-                <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+                <div className="h-px flex-1 bg-neutral-200" />
                 or
-                <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+                <div className="h-px flex-1 bg-neutral-200" />
               </div>
 
               <form
@@ -118,7 +125,7 @@ export default function Login() {
                 }}
               >
                 <input
-                  className="w-full rounded-xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white dark:bg-neutral-900 px-3.5 py-3 text-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:border-neutral-400 dark:focus:border-neutral-600 focus:ring-2 focus:ring-neutral-900/10 dark:focus:ring-white/10 outline-none"
+                  className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-3 text-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-900/10 outline-none"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -127,7 +134,7 @@ export default function Login() {
                   required
                 />
                 <input
-                  className="w-full rounded-xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white dark:bg-neutral-900 px-3.5 py-3 text-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:border-neutral-400 dark:focus:border-neutral-600 focus:ring-2 focus:ring-neutral-900/10 dark:focus:ring-white/10 outline-none"
+                  className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-3 text-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-900/10 outline-none"
                   placeholder="••••••••"
                   type="password"
                   value={pw}
@@ -136,11 +143,12 @@ export default function Login() {
                   required
                   minLength={6}
                 />
+
                 <div className="flex gap-3">
                   <button
                     type="submit"
                     disabled={busy}
-                    className="flex-1 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black px-4 py-3 text-sm font-medium hover:opacity-95 active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    className="flex-1 rounded-xl bg-neutral-900 text-white px-4 py-3 text-sm font-medium hover:opacity-95 active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
                   >
                     {busy ? "Signing in…" : "Sign in"}
                   </button>
@@ -148,7 +156,7 @@ export default function Login() {
                     type="button"
                     onClick={emailCreate}
                     disabled={busy}
-                    className="flex-1 rounded-xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white dark:bg-neutral-900 px-4 py-3 text-sm font-medium hover:shadow-sm active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 dark:focus:ring-white/10"
+                    className="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium hover:shadow-sm active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
                   >
                     {busy ? "Creating…" : "Create account"}
                   </button>
@@ -158,7 +166,7 @@ export default function Login() {
               {err && (
                 <div
                   role="alert"
-                  className="mt-4 rounded-lg border border-red-200/70 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/40 dark:text-red-300"
+                  className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
                 >
                   {err}
                 </div>
@@ -168,14 +176,14 @@ export default function Login() {
                 <p>After login you’ll set a unique username.</p>
                 <Link
                   to="/setup-username"
-                  className="mt-2 inline-block text-neutral-700 hover:text-black dark:text-neutral-300 dark:hover:text-white underline underline-offset-4"
+                  className="mt-2 inline-block text-neutral-800 hover:text-black underline underline-offset-4"
                 >
                   Go to username setup
                 </Link>
               </div>
             </div>
 
-            <p className="mt-6 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400 text-center">
+            <p className="mt-6 text-[11px] leading-relaxed text-neutral-500 text-center">
               By continuing, you agree to our Terms and acknowledge our Privacy
               Policy.
             </p>

@@ -40,6 +40,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const [qber, setQber] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, (u) => setUid(u?.uid || "")), []);
 
@@ -88,7 +89,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   // Auto scroll
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [msgs.length]);
 
   const send = async () => {
@@ -103,73 +104,128 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         createdAt: serverTimestamp(),
       });
       setText("");
+      // reset textarea height after send
+      if (taRef.current) {
+        taRef.current.style.height = "40px";
+      }
     } finally {
       setBusy(false);
     }
   };
 
+  // Auto-grow the textarea for multi-line, capped for mobile comfort
+  const autoGrow = () => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const max = 140; // px cap to avoid covering too much screen
+    el.style.height = Math.min(el.scrollHeight, max) + "px";
+  };
+
   return (
-    <div className="h-full flex flex-col bg-neutral-50/40 dark:bg-black">
-      {/* Header */}
-      <div className="px-3 sm:px-5 py-3 border-b border-neutral-200/70 dark:border-neutral-800/70 bg-white/50 dark:bg-white/[0.02] backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          {/* Back only on mobile */}
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="md:hidden inline-flex items-center justify-center rounded-xl border border-neutral-300/70 dark:border-neutral-700/70 bg-white dark:bg-neutral-900 px-3 py-2 text-xs font-medium hover:shadow-sm active:scale-[.99] transition"
-            >
-              ← Back
-            </button>
-          )}
-          <div className="flex-1 flex items-center justify-between min-w-0">
-            <div className="min-w-0">
-              <div className="text-sm font-medium truncate">@{peerName}</div>
-              <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                #{chatId.slice(0, 6)} · QBER {qber?.toFixed(3) ?? "—"}
+    <div
+      className="min-h-[100dvh] flex flex-col bg-neutral-50"
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+    >
+      {/* Header (sticky) */}
+      <div className="sticky top-0 z-10 bg-white shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+        {/* Accent bar */}
+        <div className="h-0.5 w-full bg-gradient-to-r from-[rgb(10,132,255)] via-[rgba(10,132,255,0.35)] to-transparent" />
+        <div className="px-3 sm:px-5">
+          <div className="flex items-center gap-2 py-2.5 sm:py-3">
+            {/* Back on mobile */}
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="md:hidden inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:shadow-sm active:scale-[.99] transition"
+              >
+                ←
+              </button>
+            )}
+
+            {/* Avatar + Title */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-[rgb(120,190,255)] to-[rgb(10,132,255)] text-white grid place-items-center text-xs sm:text-sm font-semibold shadow-sm"
+                aria-hidden="true"
+                title={peerName}
+              >
+                {initials(peerName)}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[15px] sm:text-[17px] font-semibold leading-tight truncate text-gray-900">
+                  {peerName}
+                </div>
+                <div className="mt-0.5 hidden xs:flex flex-wrap items-center gap-x-2 text-[11px] sm:text-xs text-neutral-500">
+                  <span className="rounded-full bg-neutral-100 px-1.5 py-0.5 border border-neutral-200">
+                    Secure
+                  </span>
+                  <span>QBER {qber?.toFixed(3) ?? "—"}</span>
+                  <span className="text-neutral-400">·</span>
+                  <span>#{chatId.slice(0, 6)}</span>
+                </div>
               </div>
             </div>
-            <div className="hidden sm:block text-[10px] text-neutral-500 dark:text-neutral-400">
+
+            {/* Seed snippet on wide screens */}
+            <div className="ml-auto hidden sm:block text-[11px] text-neutral-400">
               seed {seedB64 ? seedB64.slice(0, 10) + "…" : "—"}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 space-y-2">
-        {msgs.map((m) => (
-          <MessageRow key={m.id} me={m.senderUid === uid}>
-            <MessageBubble me={m.senderUid === uid} msg={m} keyObj={derived} />
-          </MessageRow>
-        ))}
-        <div ref={endRef} />
+      {/* Messages (extra bottom padding so sticky composer doesn’t overlap) */}
+      <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2 sm:pt-4 pb-28 sm:pb-32">
+        <div className="mx-auto w-full max-w-3xl space-y-1.5 sm:space-y-2.5">
+          {msgs.map((m) => (
+            <MessageRow key={m.id} me={m.senderUid === uid}>
+              <MessageBubble
+                me={m.senderUid === uid}
+                msg={m}
+                keyObj={derived}
+              />
+            </MessageRow>
+          ))}
+          <div ref={endRef} />
+        </div>
       </div>
 
-      {/* Composer */}
-      <div className="border-t border-neutral-200/70 dark:border-neutral-800/70 bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl px-3 sm:px-5 py-3">
-        <div className="flex items-end gap-2">
+      {/* Composer (sticky, with safe area) */}
+      <div
+        className="sticky bottom-0 z-10 border-t border-neutral-200 bg-white px-2 sm:px-4"
+        style={{
+          paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
+          paddingTop: "0.5rem",
+        }}
+      >
+        <div className="mx-auto w-full max-w-3xl flex items-end gap-2 sm:gap-3">
           <div className="flex-1">
-            <div className="rounded-2xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white dark:bg-neutral-900 px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-neutral-900/10 dark:focus-within:ring-white/10">
+            <div className="rounded-full border border-neutral-300 bg-white px-3.5 py-2 focus-within:ring-2 focus-within:ring-neutral-900/10">
               <textarea
+                ref={taRef}
                 rows={1}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
+                onInput={autoGrow}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     send();
                   }
                 }}
-                placeholder={`Message @${peerName}…`}
-                className="block w-full resize-none bg-transparent text-sm outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                placeholder={`Message @${peerName}`}
+                className="block w-full resize-none bg-white text-gray-900 text-[15px] outline-none placeholder:text-neutral-400 leading-6"
+                style={{ height: 40 }}
               />
             </div>
           </div>
           <button
             onClick={send}
             disabled={!derived || !text.trim() || busy}
-            className="rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black px-4 py-2.5 text-sm font-medium hover:opacity-95 active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+            className="h-11 sm:h-11 rounded-full bg-[rgb(10,132,255)] text-white px-4 sm:px-5 text-sm font-semibold shadow-sm hover:brightness-110 active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[rgb(10,132,255)]/30"
           >
             {busy ? "Sending…" : "Send"}
           </button>
@@ -179,7 +235,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   );
 }
 
-/** Forces each message onto its own line; aligns left for others, right for me */
+/** One line per message; left for others / right for me */
 function MessageRow({
   me,
   children,
@@ -188,7 +244,11 @@ function MessageRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`w-full flex ${me ? "justify-end" : "justify-start"}`}>
+    <div
+      className={`w-full flex ${
+        me ? "justify-end" : "justify-start"
+      } px-1 sm:px-0`}
+    >
       {children}
     </div>
   );
@@ -221,17 +281,31 @@ function MessageBubble({
   }, [keyObj, msg.iv_b64, msg.ct_b64]);
 
   return (
-    <div
-      className={[
-        "inline-block px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed",
-        "break-words align-top",
-        me
-          ? "bg-[rgb(42,145,255)] text-white"
-          : "bg-neutral-100 dark:bg-white/10 text-neutral-900 dark:text-neutral-100",
-      ].join(" ")}
-      style={{ maxWidth: "75%" }}
-    >
-      {pt}
+    <div className="max-w-[85%] sm:max-w-[70%] md:max-w-[60%]">
+      <div
+        className={[
+          "relative inline-block px-3.5 py-2.5 rounded-2xl text-[15px] leading-relaxed break-words shadow-sm",
+          me ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900",
+        ].join(" ")}
+      >
+        {pt}
+        {/* Tiny tail */}
+        <span
+          className={[
+            "absolute bottom-0 translate-y-[55%] w-3 h-3 rotate-45",
+            me ? "right-1 bg-blue-500" : "left-1 bg-gray-200",
+          ].join(" ")}
+          aria-hidden="true"
+        />
+      </div>
     </div>
   );
+}
+
+/* ---------- helpers ---------- */
+function initials(name: string) {
+  const parts = (name || "").trim().split(/\s+/);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }

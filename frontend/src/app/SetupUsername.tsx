@@ -65,16 +65,19 @@ export default function SetupUsername() {
   };
 
   return (
-    <div className="fixed inset-0 overflow-auto bg-neutral-50 text-neutral-900 dark:bg-black dark:text-neutral-100">
+    <div className="fixed inset-0 overflow-auto bg-neutral-50 text-neutral-900">
+      {/* Subtle blue accent to match the app */}
+      <div className="h-0.5 w-full bg-gradient-to-r from-[rgb(10,132,255)] via-[rgba(10,132,255,0.35)] to-transparent" />
+
       <div className="min-h-dvh w-screen grid md:grid-cols-2">
         {/* Left hero (hidden on mobile) */}
-        <section className="hidden md:flex flex-col justify-center px-12 lg:px-20 bg-gradient-to-b from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-black">
+        <section className="hidden md:flex flex-col justify-center px-12 lg:px-20 bg-gradient-to-b from-neutral-100 to-neutral-50">
           <h1 className="text-5xl font-semibold tracking-tight leading-tight">
             Pick a username.
             <br />
             Make it <span className="whitespace-nowrap">uniquely yours.</span>
           </h1>
-          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-md">
+          <p className="mt-6 text-lg text-neutral-600 max-w-md">
             Your username lets friends find you. You can use letters, numbers,
             and underscores.
           </p>
@@ -83,27 +86,27 @@ export default function SetupUsername() {
         {/* Right content */}
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md">
-            <div className="rounded-3xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl shadow-sm p-8">
+            <div className="rounded-3xl border border-neutral-200 bg-white/80 backdrop-blur-xl shadow-sm p-8">
               <header className="mb-1">
                 <h2 className="text-2xl font-semibold tracking-tight">
                   Choose your username
                 </h2>
-                <p className="mt-1.5 text-sm text-neutral-600 dark:text-neutral-400">
+                <p className="mt-1.5 text-sm text-neutral-600">
                   This will be visible to others. You can change it later.
                 </p>
               </header>
 
               {/* Username input */}
               <div className="mt-6">
-                <label className="mb-2 block text-sm text-neutral-600 dark:text-neutral-300">
+                <label className="mb-2 block text-sm text-neutral-600">
                   Username
                 </label>
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400">
                     @
                   </span>
                   <input
-                    className="w-full rounded-xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white dark:bg-neutral-900 pl-8 pr-3.5 py-3 text-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:border-neutral-400 dark:focus:border-neutral-600 focus:ring-2 focus:ring-neutral-900/10 dark:focus:ring-white/10 outline-none"
+                    className="w-full rounded-xl border border-neutral-300 bg-white pl-8 pr-3.5 py-3 text-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-900/10 outline-none"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="yourname"
@@ -116,18 +119,12 @@ export default function SetupUsername() {
                 {/* Live preview + rules */}
                 <div className="mt-3 flex items-center justify-between text-xs">
                   <div
-                    className={
-                      isValid
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-neutral-500 dark:text-neutral-400"
-                    }
+                    className={isValid ? "text-green-600" : "text-neutral-500"}
                   >
                     preview:{" "}
                     <span className="font-medium">@{uname || "yourname"}</span>
                   </div>
-                  <div className="text-neutral-500 dark:text-neutral-400">
-                    3–20 chars · a–z 0–9 _
-                  </div>
+                  <div className="text-neutral-500">3–20 chars · a–z 0–9 _</div>
                 </div>
               </div>
 
@@ -136,13 +133,13 @@ export default function SetupUsername() {
                 <button
                   onClick={claim}
                   disabled={!uid || !isValid || busy}
-                  className="flex-1 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black px-4 py-3 text-sm font-medium hover:opacity-95 active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                  className="flex-1 rounded-xl bg-neutral-900 text-white px-4 py-3 text-sm font-medium hover:opacity-95 active:scale-[.99] transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
                 >
                   {busy ? "Saving…" : "Save"}
                 </button>
                 <Link
                   to="/chats"
-                  className="flex-1 rounded-xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white dark:bg-neutral-900 px-4 py-3 text-sm font-medium text-center hover:shadow-sm active:scale-[.99] transition focus:outline-none focus:ring-2 focus:ring-neutral-900/10 dark:focus:ring-white/10"
+                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-center hover:shadow-sm active:scale-[.99] transition focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
                 >
                   Skip for now
                 </Link>
@@ -152,7 +149,7 @@ export default function SetupUsername() {
               {err && (
                 <div
                   role="alert"
-                  className="mt-4 rounded-lg border border-red-200/70 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/40 dark:text-red-300"
+                  className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
                 >
                   {err}
                 </div>
@@ -168,7 +165,7 @@ export default function SetupUsername() {
                 <p>Need to switch account?</p>
                 <Link
                   to="/login"
-                  className="mt-1 inline-block text-neutral-700 hover:text-black dark:text-neutral-300 dark:hover:text-white underline underline-offset-4"
+                  className="mt-1 inline-block text-neutral-800 hover:text-black underline underline-offset-4"
                 >
                   Back to sign in
                 </Link>
@@ -176,7 +173,7 @@ export default function SetupUsername() {
             </div>
 
             {/* Tiny legal */}
-            <p className="mt-6 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400 text-center">
+            <p className="mt-6 text-[11px] leading-relaxed text-neutral-500 text-center">
               By continuing, you agree to our Terms and acknowledge our Privacy
               Policy.
             </p>
